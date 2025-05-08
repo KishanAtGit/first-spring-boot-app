@@ -8,7 +8,9 @@ import org.springframework.web.bind.annotation.*;
 import com.attano.attanoapp.model.User;
 import com.attano.attanoapp.service.UserService;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -29,19 +31,33 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Long id) {
+    public ResponseEntity<Map<String, Object>> getUserById(@PathVariable Long id) {
+        Map<String, Object> response = new HashMap<>();
         Optional<User> user = userService.getUserById(id);
-        return user.map(value -> new ResponseEntity<>(value, HttpStatus.OK))
-                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        if (user.isPresent()) {
+            response.put("message", "User found");
+            response.put("data", user.get());
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } else {
+            response.put("message", "User not found");
+            return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+        }
     }
 
     @PostMapping
-    public ResponseEntity<User> createUser(@RequestBody User user) {
+    public ResponseEntity<Map<String, Object>> createUser(@ModelAttribute User user) {
+        Map<String, Object> response = new HashMap<>();
+
         if (userService.existsByEmail(user.getEmail())) {
-            return new ResponseEntity<>(HttpStatus.CONFLICT);
+            response.put("message", "Email already exists");
+            return new ResponseEntity<>(response, HttpStatus.CONFLICT);
         }
+
         User createdUser = userService.createUser(user);
-        return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
+        response.put("message", "User created successfully");
+        response.put("data", createdUser);
+
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
@@ -57,13 +73,17 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+    public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable Long id) {
+        Map<String, Object> response = new HashMap<>();
         Optional<User> user = userService.getUserById(id);
         if (user.isPresent()) {
             userService.deleteUser(id);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            response.put("message", "User deleted successfully");
+            return new ResponseEntity<>(response, HttpStatus.OK);
         } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            response.put("message", "User not found");
+
+            return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
         }
     }
 }
